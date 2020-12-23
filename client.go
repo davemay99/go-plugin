@@ -644,6 +644,7 @@ func (c *Client) Start() (addr net.Addr, err error) {
 	// Start a goroutine that is going to be reading the lines
 	// out of stdout
 	linesCh := make(chan string)
+	errCh := make(chan string)
 	c.clientWaitGroup.Add(1)
 	go func() {
 		defer c.clientWaitGroup.Done()
@@ -652,6 +653,10 @@ func (c *Client) Start() (addr net.Addr, err error) {
 		scanner := bufio.NewScanner(cmdStdout)
 		for scanner.Scan() {
 			linesCh <- scanner.Text()
+		}
+		// Check scanner for non-EOF errors
+		if err := scanner.Err(); err != nil {
+			errCh <- err.Error()
 		}
 	}()
 
@@ -674,6 +679,8 @@ func (c *Client) Start() (addr net.Addr, err error) {
 	// Start looking for the address
 	c.logger.Debug("waiting for RPC address", "path", cmd.Path)
 	select {
+	case scanErr := <-errCh:
+		err = fmt.Errorf("error while reading stdout from plugin, err: %s", scanErr)
 	case <-timeout:
 		err = errors.New("timeout while waiting for plugin to start")
 	case <-c.doneCtx.Done():
