@@ -686,8 +686,8 @@ func (c *Client) Start() (addr net.Addr, err error) {
 	case <-c.doneCtx.Done():
 		err = errors.New("plugin exited before we could connect")
 	case line := <-linesCh:
+		// Trim the line and verify we received data from the scanner
 		line = strings.TrimSpace(line)
-		// Verify we received data from the scanner
 		if len(line) == 0 {
 			err = fmt.Errorf(
 				"Empty remote plugin message. "+
@@ -697,8 +697,7 @@ func (c *Client) Start() (addr net.Addr, err error) {
 			return
 		}
 
-		// Trim the line and split by "|" in order to get the parts of
-		// the output.
+		// Split by "|" in order to get the parts of the output.
 		parts := strings.SplitN(line, "|", 6)
 		if len(parts) < 4 {
 			err = fmt.Errorf(
