@@ -500,6 +500,9 @@ func TestHelperProcess(*testing.T) {
 		// write values that might be JSON, but aren't KVs
 		fmt.Printf("%d|%d|tcp|:1234\n", CoreProtocolVersion, testHandshake.ProtocolVersion)
 		os.Stderr.WriteString("[WARN] test line 98765\n")
+	case "empty-line":
+		// write emoty line
+		fmt.Println()
 	case "stdin":
 		fmt.Printf("%d|%d|tcp|:1234\n", CoreProtocolVersion, testHandshake.ProtocolVersion)
 		data := make([]byte, 5)

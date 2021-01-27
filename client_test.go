@@ -1395,3 +1395,42 @@ this line is short
 		t.Fatalf("\nexpected output: %q\ngot output:      %q", msg, read)
 	}
 }
+
+// Test that we detect empty lines as a distinct error
+func TestClient_emptyLogLine(t *testing.T) {
+	stderr := new(bytes.Buffer)
+	process := helperProcess("empty-line")
+
+	var logBuf bytes.Buffer
+	mutex := new(sync.Mutex)
+	// Custom hclog.Logger
+	testLogger := hclog.New(&hclog.LoggerOptions{
+		Name:   "test-logger",
+		Level:  hclog.Warn,
+		Output: &logBuf,
+		Mutex:  mutex,
+	})
+
+	c := NewClient(&ClientConfig{
+		Cmd:             process,
+		Stderr:          stderr,
+		HandshakeConfig: testHandshake,
+		Logger:          testLogger,
+		Plugins:         testPluginMap,
+	})
+	defer c.Kill()
+
+	if _, err := c.Start(); err != nil {
+		if !strings.Contains(err.Error(), "Empty remote plugin message") {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	for !c.Exited() {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	if c.killed() {
+		t.Fatal("process failed to exit gracefully")
+	}
+}
